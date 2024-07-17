@@ -7,7 +7,7 @@ class Controller:
         self._view = view
         # the model, which implements the logic of the program and holds the data
         self._model = model
-        self._choiceNode=0
+        self._choiceNode=None
 
 
     def handle_graph(self, e):
@@ -29,6 +29,10 @@ class Controller:
         print(self._choiceNode)
     def handle_statistiche(self, e):
         self._view.txt_result2.clean()
+        if self._choiceNode==None:
+            self._view.txt_result2.controls.append(ft.Text("Errore, selezionare un tipo"))
+            self._view.update_page()
+            return
         connection=self._model.getConnected(self._choiceNode)
         self._view.txt_result2.controls.append(ft.Text(f"adiacenti a: {self._choiceNode}"))
         for c in connection:
@@ -37,6 +41,10 @@ class Controller:
 
     def handle_search(self, e):
         self._view.txt_result3.clean()
+        if self._choiceNode==None:
+            self._view.txt_result3.controls.append(ft.Text("Errore, selezionare un tipo"))
+            self._view.update_page()
+            return
         path, cost=self._model.search_path(self._choiceNode)
         self._view.txt_result3.controls.append(ft.Text(f"Trovato percorso di lunghezza: {cost}"))
         for p in path:
