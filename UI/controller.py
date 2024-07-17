@@ -7,6 +7,7 @@ class Controller:
         self._view = view
         # the model, which implements the logic of the program and holds the data
         self._model = model
+        self._soglia=None
 
     def handle_graph(self, e):
         self._view.txt_result.clean()
@@ -17,6 +18,7 @@ class Controller:
         self._view.update_page()
 
     def handle_countedges(self, e):
+        self._view.txt_result2.clean()
         try:
             self._soglia=float(self._view.txt_name.value)
         except ValueError:
@@ -35,4 +37,13 @@ class Controller:
         self._view.txt_result2.controls.append(ft.Text(f"Numero di archi con peso uguale della soglia: {len(uguali)}"))
         self._view.update_page()
     def handle_search(self, e):
-        path=self._model.getPath(self._soglia)
+        self._view.txt_result3.clean()
+        if self._soglia==None:
+            self._view.txt_result3.controls.append(ft.Text("Errore, inserire un valore numerico"))
+            self._view.update_page()
+            return
+        path, cost=self._model.searchPath(self._soglia)
+        self._view.txt_result3.controls.append(ft.Text(f"Trovato percorso di lunghezza {cost}"))
+        for p in path:
+            self._view.txt_result3.controls.append(ft.Text(f"{p[0]} --> {p[1]}: {p[2]}"))
+        self._view.update_page()
