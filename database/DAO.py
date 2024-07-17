@@ -1,6 +1,4 @@
 from database.DB_connect import DBConnect
-from model.chromosone import Chromosone
-from model.connection import Connection
 
 
 class DAO():
@@ -8,32 +6,33 @@ class DAO():
         pass
 
     @staticmethod
-    def getChromosone():
-        conn=DBConnect.get_connection()
+    def getLocalization():
+        conn = DBConnect.get_connection()
         result=[]
-        query="""select distinct g.Chromosome as chromosone 
-from genes g 
-where g.Chromosome !=0"""
+        query="""select distinct c.Localization 
+from classification c """
         cursor=conn.cursor(dictionary=True)
         cursor.execute(query)
         for row in cursor:
-            result.append(row["chromosone"])
+            result.append(row["Localization"])
         cursor.close()
         conn.close()
         return result
 
     @staticmethod
-    def getEdges():
-        conn=DBConnect.get_connection()
-        result=[]
-        query="""select g1.Chromosome as Chromosome1, g2.Chromosome as Chromosome2,i.GeneID1 as gene1, i.GeneID2 as gene2, i.Expression_Corr as corr  
-from interactions i ,genes g1, genes g2
-where i.GeneID1 =g1.GeneID  and i.GeneID2 =g2.GeneID and g1.Chromosome!=0 and g2.Chromosome!=0 and g1.Chromosome!=g2.Chromosome
-group by  g1.Chromosome , g2.Chromosome ,i.GeneID1, i.GeneID2"""
+    def getConnessioni():
+        conn = DBConnect.get_connection()
+        result = []
+        query = """select distinct  t.l1, t.l2, t.Type
+from (select c.Localization as l1, c2.Localization as l2 , i.`Type` 
+from classification c , interactions i, classification c2 
+where i.GeneID1 =c.GeneID and c2.GeneID =i.GeneID2 and c.Localization!=c2.Localization 
+order by c.Localization, c2.Localization) t 
+order by t.l1, t.l2"""
         cursor = conn.cursor(dictionary=True)
         cursor.execute(query)
         for row in cursor:
-            result.append(Connection(**row))
+            result.append((row["l1"], row["l2"], row["Type"]))
         cursor.close()
         conn.close()
         return result

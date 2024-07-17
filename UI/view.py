@@ -43,13 +43,13 @@ class View(ft.UserControl):
 
         #ROW with some controls
         # text field for the name
-        self.txt_name = ft.TextField(
-            label="soglia",
+        self.ddLocalizzazione = ft.Dropdown(
+            label="localizzazione",
             width=200,
-            hint_text="Soglia (s)"
+            hint_text="Localizzazione"
         )
-        self.btn_countedges = ft.ElevatedButton(text="Conta Archi", on_click=self._controller.handle_countedges)
-        row2 = ft.Row([self.txt_name, self.btn_countedges],
+        self.btnStatistiche = ft.ElevatedButton(text="Statistiche", on_click=self._controller.handle_statistiche)
+        row2 = ft.Row([self.ddLocalizzazione, self.btnStatistiche],
                       alignment=ft.MainAxisAlignment.CENTER)
         self._page.controls.append(row2)
 

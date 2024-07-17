@@ -7,110 +7,78 @@ from database.DAO import DAO
 
 class Model:
     def __init__(self):
-        self._grafo=nx.DiGraph()
-        self._grafo2=nx.DiGraph()
+        self._grafo=nx.Graph()
+        self._nodes=DAO.getLocalization()
+        self._edges=DAO.getConnessioni()
         self._solBest=[]
         self._costBest=0
 
-    def create_graph(self):
+
+    def createGraph(self):
         self._grafo.clear()
-        self._nodes=DAO.getChromosone()
-        for node in self._nodes:
-            self._grafo.add_node(node)
-        self._edges=DAO.getEdges()
+        self._grafo.add_nodes_from(self._nodes)
+        edges={}
         for edge in self._edges:
-            if self._grafo.has_edge(edge.Chromosome1,edge.Chromosome2) :
-                    self._grafo[edge.Chromosome1][edge.Chromosome2]["corr"]+=edge.corr
+            if (edge[0],edge[1]) in edges:
+                edges[(edge[0],edge[1])].append(edge[2])
+                continue
+            elif (edge[1],edge[0]) in edges:
+                if edge[2] not in edges[(edge[1],edge[0])]:
+                    edges[(edge[1],edge[0])].append(edge[2])
+                    continue
             else:
-                self._grafo.add_edge(edge.Chromosome1,edge.Chromosome2, corr=edge.corr)
+                edges[(edge[0], edge[1])]=[edge[2]]
+        for edge in edges:
+            value=len(edges[edge])
+            self._grafo.add_edge(edge[0],edge[1], weight=value)
+    def descriviGrafo(self):
+        return self._grafo.nodes, self._grafo.edges
+    def getConnected(self,node):
+        neighbors=self._grafo.neighbors(node)
+        edges=[]
+        for neighbor in neighbors:
+            edges.append((neighbor,self._grafo[neighbor][node]["weight"]))
+        return edges
 
-    def getNumberOfNodes(self):
-        return self._grafo.number_of_nodes()
+    def search_path(self,v0):
+        self._solBest=[]
+        self._costBest=0
+        parziale=[]
+        visitati=[v0]
+        neighbors=self._grafo.neighbors(v0)
+        for neighbor in neighbors:
+            visitati.append(neighbor)
+            parziale.append((v0,neighbor,self._grafo[neighbor][v0]["weight"]))
+            self._ricorsione(visitati,parziale,neighbor)
+            visitati.pop()
+            parziale.pop()
+        return self._solBest,self._costBest
 
-    def getNumberOfEdges(self):
-        return self._grafo.number_of_edges()
-    def getMinEdge(self):
-        min=(0,0,20)
-        for edge in self._grafo.edges:
-            if self._grafo.edges[edge]["corr"]<min[2]:
-                min=(edge[0],edge[1],self._grafo.edges[edge]["corr"])
-            print(edge)
-        return min
+    def _ricorsione(self,visitati,parziale,node):
+        neighbors=self._admissibleNeighbors(node,visitati)
+        if len(neighbors)==0:
+            costo=self._calcolaCosto(parziale)
+            if costo>self._costBest:
+                self._costBest=costo
+                self._solBest=copy.deepcopy(parziale)
+            print(parziale)
+            return
+        for neighbor in neighbors:
+            visitati.append(neighbor)
+            parziale.append((node,neighbor,self._grafo[neighbor][node]["weight"]))
+            self._ricorsione(visitati,parziale,neighbor)
+            visitati.pop()
+            parziale.pop()
+    def _admissibleNeighbors(self,node,parziale):
+        neighbors=self._grafo.neighbors(node)
+        admissible=[]
+        for neighbor in neighbors:
+            if neighbor not in parziale :
+                admissible.append(neighbor)
+        return admissible
+    def _calcolaCosto(self,parziale):
+        sum=0
+        for edge in parziale:
+            sum+=edge[2]
+        return sum
 
-    def getMaxEdge(self):
-        min = (0, 0, -20)
-        for edge in self._grafo.edges:
-            if self._grafo.edges[edge]["corr"]>min[2]:
-                min=(edge[0],edge[1],self._grafo.edges[edge]["corr"])
-            print(edge)
-        return min
-
-    def countEdges(self,nMin):
-        min=0
-        max=0
-        ugu=0
-        self._grafo2.add_nodes_from(list(self._grafo.nodes))
-        for edge in self._grafo.edges:
-            if self._grafo.edges[edge]["corr"]>nMin:
-                max+=1
-                self._grafo2.add_edge(edge[0],edge[1],corr=self._grafo.edges[edge]["corr"])
-            elif self._grafo.edges[edge]["corr"]<nMin:
-                min+=1
-            else:
-                ugu+=1
-        return min,max,ugu
-    def search_path(self,t):
-            for n in self.get_nodes():
-                partial = []
-                partial_edges = []
-
-                partial.append(n)
-                self.ricorsione(partial, partial_edges, t)
-
-            print("final", len(self._solBest), [i[2]["corr"] for i in self._solBest])
-
-    def ricorsione(self, partial, partial_edges, t):
-            n_last = partial[-1]
-            neigh = self.getAdmissibleNeighbs(n_last, partial_edges, t)
-
-            # stop
-            if len(neigh) == 0:
-                weight_path = self.computeWeightPath(partial_edges)
-                weight_path_best = self.computeWeightPath(self._solBest)
-                if weight_path > weight_path_best:
-                    self._solBest = partial_edges[:]
-                return
-
-            for n in neigh:
-                partial.append(n)
-                partial_edges.append((n_last, n, self._grafo.get_edge_data(n_last, n)))
-                self.ricorsione(partial, partial_edges, t)
-                partial.pop()
-                partial_edges.pop()
-
-    def getAdmissibleNeighbs(self, n_last, partial_edges, t):
-            all_neigh = self._grafo.edges(n_last, data=True)
-            result = []
-            for e in all_neigh:
-                if e[2]["corr"] > t:
-                    e_inv = (e[1], e[0], e[2])
-                    if (e_inv not in partial_edges) and (e not in partial_edges):
-                        result.append(e[1])
-            return result
-
-    def computeWeightPath(self, mylist):
-            weight = 0
-            for e in mylist:
-                weight += e[2]['corr']
-            return weight
-
-    def getSolBest(self):
-        return self._solBest
-    def getCostoBest(self):
-        return self._costBest
-
-    def get_nodes(self):
-        return self._grafo.nodes()
-
-    def get_edges(self):
-        return list(self._grafo.edges(data=True))
